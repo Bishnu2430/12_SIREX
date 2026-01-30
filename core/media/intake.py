@@ -2,7 +2,7 @@ import os
 import mimetypes
 from datetime import datetime
 
-SUPPORTED_IMAGE = ["image/jpeg", "image/png", "image/jpg"]
+SUPPORTED_IMAGE = ["image/jpeg", "image/png", "image/jpg", "image/webp"]
 SUPPORTED_VIDEO = ["video/mp4", "video/mov", "video/avi", "video/mkv"]
 SUPPORTED_AUDIO = ["audio/wav", "audio/mp3", "audio/mpeg"]
 

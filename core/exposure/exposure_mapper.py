@@ -1,9 +1,6 @@
 import uuid
 
 class ExposureMapper:
-    def __init__(self):
-        pass
-
     def biometric_exposure(self, persons):
         exposures = []
         for person in persons:

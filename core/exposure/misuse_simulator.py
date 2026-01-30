@@ -1,7 +1,4 @@
 class MisuseSimulator:
-    def __init__(self):
-        pass
-
     def simulate_biometric_misuse(self, exposure):
         return {
             "entity": exposure["entity"],
@@ -17,7 +14,6 @@ class MisuseSimulator:
         else:
             likelihood = "Medium"
             impact = "Routine tracking and profiling"
-
         return {
             "entity": exposure["entity"],
             "misuse": "Location-based targeting and movement profiling",
@@ -43,18 +39,13 @@ class MisuseSimulator:
 
     def run(self, exposures):
         misuse_cases = []
-
         for exp in exposures:
             if "Biometric" in exp["type"]:
                 misuse_cases.append(self.simulate_biometric_misuse(exp))
-
             elif "Geolocation" in exp["type"] or "Location" in exp["type"]:
                 misuse_cases.append(self.simulate_location_misuse(exp))
-
             elif "Organizational" in exp["type"]:
                 misuse_cases.append(self.simulate_org_misuse(exp))
-
             elif "Behavioral" in exp["type"]:
                 misuse_cases.append(self.simulate_behavioral_misuse(exp))
-
         return misuse_cases

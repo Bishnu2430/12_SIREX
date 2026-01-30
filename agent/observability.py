@@ -1,6 +1,6 @@
-import json
-import os
+import json, os, logging
 from datetime import datetime
+logger = logging.getLogger(__name__)
 
 class Observability:
     def __init__(self, log_dir="storage/logs"):
@@ -13,11 +13,12 @@ class Observability:
             "stage": stage,
             "data": data
         }
-
         log_file = os.path.join(self.log_dir, f"{session_id}.log")
-
-        with open(log_file, "a") as f:
-            f.write(json.dumps(log_entry) + "\n")
+        try:
+            with open(log_file, "a") as f:
+                f.write(json.dumps(log_entry, default=str) + "\n")
+        except Exception as e:
+            logger.error(f"Failed to log event: {e}")
 
     def log_pipeline(self, session_id, signals, entities, exposures, risk_results):
         self.log_event(session_id, "signals_detected", signals)
@@ -30,3 +31,17 @@ class Observability:
             "entity_id": entity_id,
             "action": action
         })
+    
+    def get_logs(self, session_id):
+        """Retrieve logs for a session"""
+        log_file = os.path.join(self.log_dir, f"{session_id}.log")
+        if not os.path.exists(log_file):
+            return []
+        logs = []
+        try:
+            with open(log_file, "r") as f:
+                for line in f:
+                    logs.append(json.loads(line.strip()))
+        except:
+            pass
+        return logs

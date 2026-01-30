@@ -1,66 +1,35 @@
-import cv2
 import os
+import subprocess
+import shutil
 
-class FrameExtractor:
-    def __init__(self, video_path: str, workspace: str, interval_sec: int = 2):
+class AudioExtractor:
+    def __init__(self, video_path: str, workspace: str):
         self.video_path = video_path
-        # normalize workspace to absolute path
-        self.workspace = os.path.abspath(workspace)
-        self.interval_sec = interval_sec
-        self.frames_dir = os.path.join(self.workspace, "frames")
-
-        os.makedirs(self.frames_dir, exist_ok=True)
-
-        # Resolve video full path: prefer file inside workspace, then given path
-        if os.path.isabs(self.video_path):
-            self.video_full_path = self.video_path
-        else:
-            candidate_in_workspace = os.path.join(self.workspace, self.video_path)
-            if os.path.exists(candidate_in_workspace):
-                self.video_full_path = os.path.abspath(candidate_in_workspace)
-            else:
-                # fallback to given path (possibly relative to cwd)
-                self.video_full_path = os.path.abspath(self.video_path)
+        self.workspace = workspace
+        self.audio_dir = os.path.join(workspace, "audio")
+        os.makedirs(self.audio_dir, exist_ok=True)
 
     def extract(self):
-        cap = cv2.VideoCapture(self.video_full_path)
+        output_audio_path = os.path.join(self.audio_dir, "extracted_audio.wav")
 
-        if not cap.isOpened():
-            raise RuntimeError(f"Unable to open video file: {self.video_full_path}")
+        ffmpeg_exe = shutil.which("ffmpeg")
+        if not ffmpeg_exe:
+            return {"audio_path": None}  # Skip if ffmpeg not available
 
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        frame_interval = int(fps * self.interval_sec)
+        command = [
+            ffmpeg_exe,
+            "-i", self.video_path,
+            "-vn",
+            "-acodec", "pcm_s16le",
+            "-ar", "16000",
+            "-ac", "1",
+            output_audio_path,
+            "-y"
+        ]
 
-        frames_metadata = []
-        frame_count = 0
-        saved_count = 0
+        try:
+            subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except subprocess.CalledProcessError:
+            return {"audio_path": None}
 
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
-
-            if frame_count % frame_interval == 0:
-                timestamp = frame_count / fps
-                frame_name = f"frame_{saved_count:04d}.jpg"
-                frame_path = os.path.join(self.frames_dir, frame_name)
-
-                cv2.imwrite(frame_path, frame)
-
-                frames_metadata.append({
-                    "frame_id": saved_count,
-                    "path": frame_path,
-                    "timestamp_sec": round(timestamp, 2)
-                })
-
-                saved_count += 1
-
-            frame_count += 1
-
-        cap.release()
-
-        return {
-            "total_frames_extracted": saved_count,
-            "frames_dir": self.frames_dir,
-            "frames": frames_metadata
-        }
+        return {"audio_path": output_audio_path}

@@ -1,6 +1,5 @@
 class RiskEngine:
     def __init__(self):
-        # weights (can later be learned)
         self.weights = {
             "sensitivity": 0.3,
             "exploitability": 0.25,
@@ -24,10 +23,8 @@ class RiskEngine:
 
     def compute_risk(self, exposure, misuse):
         base_scores = self.score_exposure(exposure["type"])
-
-        visibility = 0.8  # public media assumption
-        correlation = 0.7  # multi-modal system = high correlation potential
-
+        visibility = 0.8
+        correlation = 0.7
         risk_score = (
             base_scores["sensitivity"] * self.weights["sensitivity"] +
             base_scores["exploitability"] * self.weights["exploitability"] +
@@ -35,7 +32,6 @@ class RiskEngine:
             correlation * self.weights["correlation"] +
             base_scores["ai_amplification"] * self.weights["ai_amplification"]
         )
-
         return round(risk_score, 2)
 
     def classify_severity(self, score):
@@ -50,17 +46,14 @@ class RiskEngine:
 
     def evaluate(self, exposures, misuse_cases):
         results = []
-
         for exp in exposures:
             misuse = next((m for m in misuse_cases if m["entity"] == exp["entity"]), None)
             score = self.compute_risk(exp, misuse)
             severity = self.classify_severity(score)
-
             results.append({
                 "entity": exp["entity"],
                 "exposure_type": exp["type"],
                 "risk_score": score,
                 "severity": severity
             })
-
         return results

@@ -4,14 +4,11 @@ import os
 class FrameExtractor:
     def __init__(self, video_path: str, workspace: str, interval_sec: int = 2):
         self.video_path = video_path
-        # normalize workspace to absolute path
         self.workspace = os.path.abspath(workspace)
         self.interval_sec = interval_sec
         self.frames_dir = os.path.join(self.workspace, "frames")
-
         os.makedirs(self.frames_dir, exist_ok=True)
 
-        # Resolve video full path: prefer file inside workspace, then given path
         if os.path.isabs(self.video_path):
             self.video_full_path = self.video_path
         else:
@@ -19,7 +16,6 @@ class FrameExtractor:
             if os.path.exists(candidate_in_workspace):
                 self.video_full_path = os.path.abspath(candidate_in_workspace)
             else:
-                # fallback to given path (possibly relative to cwd)
                 self.video_full_path = os.path.abspath(self.video_path)
 
     def extract(self):
@@ -29,6 +25,8 @@ class FrameExtractor:
             raise RuntimeError(f"Unable to open video file: {self.video_full_path}")
 
         fps = cap.get(cv2.CAP_PROP_FPS)
+        if fps == 0:
+            fps = 30  # default
         frame_interval = int(fps * self.interval_sec)
 
         frames_metadata = []
@@ -40,7 +38,7 @@ class FrameExtractor:
             if not ret:
                 break
 
-            if frame_count % frame_interval == 0:
+            if frame_count % max(frame_interval, 1) == 0:
                 timestamp = frame_count / fps
                 frame_name = f"frame_{saved_count:04d}.jpg"
                 frame_path = os.path.join(self.frames_dir, frame_name)

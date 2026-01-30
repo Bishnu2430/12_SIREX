@@ -20,3 +20,7 @@ regex
 tqdm
 git+https://github.com/openai/CLIP.git
 python-multipart
+streamlit
+plotly
+google-generativeai
+python-dotenv

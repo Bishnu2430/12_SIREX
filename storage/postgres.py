@@ -1,99 +1,90 @@
-import json
-import os
-import logging
-
+import json, os, logging, sqlite3
 from dotenv import load_dotenv
 load_dotenv()
 
-print("ENV CHECK:", os.getenv("POSTGRES_HOST"), os.getenv("POSTGRES_PASSWORD"))
+logger = logging.getLogger(__name__)
 
 try:
     import psycopg2
-except Exception:
+except ImportError:
     psycopg2 = None
-
-import sqlite3
-
-logger = logging.getLogger(__name__)
 
 
 class PostgresStorage:
-    def __init__(self, db=None, user=None, password=None, host=None, port=None):
-        self.db = db or os.getenv("POSTGRES_DB", "osint")
-        self.user = user or os.getenv("POSTGRES_USER", "postgres")
-        self.password = password or os.getenv("POSTGRES_PASSWORD", "password")
-        self.host = host or os.getenv("POSTGRES_HOST", "127.0.0.1")
-        self.port = port or os.getenv("POSTGRES_PORT", "5432")
+    def __init__(self, db=None, user=None, password=None, host=None):
+        self.conn = None
+        self.is_postgres = False
 
-        if psycopg2 is None:
-            logger.warning("psycopg2 not available; falling back to sqlite3 local storage")
-            self._use_sqlite()
-            return
+        db = db or os.getenv("POSTGRES_DB", "osint")
+        user = user or os.getenv("POSTGRES_USER", "postgres")
+        password = password or os.getenv("POSTGRES_PASSWORD", "password")
+        host = host or os.getenv("POSTGRES_HOST", "localhost")
 
-        try:
-            print(f"Connecting to Postgres → DB:{self.db} HOST:{self.host} PORT:{self.port}")
-            self.conn = psycopg2.connect(
-                dbname=self.db,
-                user=self.user,
-                password=self.password,
-                host=self.host,
-                port=self.port,
-            )
-            self.backend = "postgres"
-            self.create_table()
-            print("✓ PostgreSQL initialized")
+        # Try Postgres first
+        if psycopg2:
+            try:
+                self.conn = psycopg2.connect(
+                    dbname=db,
+                    user=user,
+                    password=password,
+                    host=host
+                )
+                self.is_postgres = True
+                logger.info("Connected to PostgreSQL")
+                self.create_table()
+                return
+            except Exception as e:
+                logger.warning(f"Postgres failed, falling back to SQLite: {e}")
 
-        except Exception as e:
-            logger.exception("Failed to connect to Postgres; falling back to sqlite: %s", e)
-            self._use_sqlite()
+        # Fallback to SQLite
+        self._use_sqlite(db)
 
-    def _use_sqlite(self):
-        path = os.path.join(os.getcwd(), f"{self.db}.sqlite")
-        self.conn = sqlite3.connect(path)
-        self.backend = "sqlite"
+    def _use_sqlite(self, db_name):
+        os.makedirs("storage", exist_ok=True)
+        path = os.path.join("storage", f"{db_name}.sqlite")
+        self.conn = sqlite3.connect(path, check_same_thread=False)
+        self.is_postgres = False
+        logger.info(f"Using SQLite database at {path}")
         self.create_table()
-        print("⚠ Using SQLite fallback")
 
     def create_table(self):
         cur = self.conn.cursor()
-
-        if self.backend == "postgres":
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS reports (
-                    session_id TEXT PRIMARY KEY,
-                    report JSONB
-                )
-            """)
-        else:
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS reports (
-                    session_id TEXT PRIMARY KEY,
-                    report TEXT
-                )
-            """)
-
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS reports (
+                session_id TEXT PRIMARY KEY,
+                report TEXT
+            )
+        """)
         self.conn.commit()
 
     def save_report(self, session_id, report):
         cur = self.conn.cursor()
-        payload = json.dumps(report)
+        payload = json.dumps(report, default=str)
 
-        if self.backend == "postgres":
-            cur.execute(
-                """
-                INSERT INTO reports (session_id, report)
-                VALUES (%s, %s)
-                ON CONFLICT (session_id) DO UPDATE SET report = EXCLUDED.report
-                """,
-                (session_id, payload),
-            )
+        try:
+            if self.is_postgres:
+                cur.execute(
+                    """INSERT INTO reports (session_id, report)
+                       VALUES (%s, %s)
+                       ON CONFLICT (session_id)
+                       DO UPDATE SET report = EXCLUDED.report""",
+                    (session_id, payload)
+                )
+            else:
+                cur.execute(
+                    "INSERT OR REPLACE INTO reports (session_id, report) VALUES (?, ?)",
+                    (session_id, payload)
+                )
+            self.conn.commit()
+        except Exception as e:
+            logger.error(f"Failed to save report: {e}")
+
+    def get_report(self, session_id):
+        cur = self.conn.cursor()
+        if self.is_postgres:
+            cur.execute("SELECT report FROM reports WHERE session_id = %s", (session_id,))
         else:
-            cur.execute(
-                """
-                INSERT OR REPLACE INTO reports (session_id, report)
-                VALUES (?, ?)
-                """,
-                (session_id, payload),
-            )
+            cur.execute("SELECT report FROM reports WHERE session_id = ?", (session_id,))
 
-        self.conn.commit()
+        result = cur.fetchone()
+        return json.loads(result[0]) if result else None

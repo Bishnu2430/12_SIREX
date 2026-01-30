@@ -11,7 +11,9 @@ from storage.postgres import PostgresStorage
 from core.reasoning.hypothesis_engine import HypothesisEngine
 from core.reasoning.behavior_analysis import BehaviorAnalyzer
 from core.reasoning.spatial_temporal import SpatialTemporalReasoner
+import logging
 
+logger = logging.getLogger(__name__)
 
 class AgentController:
     def __init__(self):
@@ -26,52 +28,103 @@ class AgentController:
         self.behavior_analyzer = BehaviorAnalyzer()
         self.spatial_reasoner = SpatialTemporalReasoner()
         self.observer = Observability()
+        from core.reasoning.llm_client import LLMClient
+        self.llm_client = LLMClient()
         self.graph = Neo4jClient()
         self.storage = PostgresStorage()
+        self.latest_graph_data = {"nodes": [], "links": []}
 
+    def _build_memory_graph(self, entities, relationships):
+        nodes = []
+        links = []
+        node_ids = set()
 
+        for category, items in entities.items():
+            for item in items:
+                if item["entity_id"] not in node_ids:
+                    nodes.append({"id": item["entity_id"], "type": item["type"]})
+                    node_ids.add(item["entity_id"])
+        
+        for rel in relationships:
+            # Ensure source/target exist in nodes (they should)
+            links.append({
+                "source": rel["from"],
+                "target": rel["to"],
+                "type": rel["type"]
+            })
+            
+        return {"nodes": nodes, "links": links}
 
     def run_pipeline(self, signals, session_id):
+        logger.info(f"Starting pipeline for session: {session_id}")
         self.observer.log_event(session_id, "pipeline_start", {"session_id": session_id})
 
         entities = self.entity_builder.build_all(signals)
+        
+        # ----------------------------------------------------
+        # ENTITY RE-IDENTIFICATION (MEMORY CHECK)
+        # ----------------------------------------------------
+        for person in entities.get("persons", []):
+            if person.get("embedding"):
+                # Check if we have seen this face before
+                match_id = self.memory.find_match(person["embedding"])
+                if match_id:
+                    logger.info(f"Re-identified Person: {match_id}")
+                    person["entity_id"] = match_id # Link to existing identity
+                    person["reidentified"] = True
+        
         self.observer.log_event(session_id, "entities_built", entities)
 
         relationships = self.relationship_mapper.build_all(entities, signals)
         self.observer.log_event(session_id, "relationships_built", relationships)
 
-        exposures = self.exposure_mapper.build_all(entities)
+        # LLM Analysis (Early Execution for Exposure Mapping)
+        image_path = signals.get("file_path")
+        llm_result = self.llm_client.analyze_signals(signals, image_path=image_path)
+        
+        narrative_report = llm_result.get("narrative_report", "")
+        llm_exposures = llm_result.get("exposures", [])
+        
+        self.observer.log_event(session_id, "llm_analysis_complete", {"status": "success"})
+
+        # Map Exposures: Prefer LLM exposures, fallback to hardcoded
+        if llm_exposures:
+            exposures = []
+            for exp in llm_exposures:
+                # Normalize keys for report generator
+                exposures.append({
+                    "exposure_id": f"EXP_{uuid.uuid4().hex[:8]}",
+                    "type": exp.get("type"),
+                    "entity": "Analyzed Subject", # LLM usually analyzes the main subject
+                    "risk_score": 0.9 if exp.get("risk_level") == "CRITICAL" else 0.7, # Simplified mapping
+                    "severity": exp.get("risk_level", "MEDIUM"),
+                    "simulated_misuse": {
+                        "misuse": exp.get("misuse_scenario", "N/A"),
+                        "impact": "See report details"
+                    },
+                    "recommendations": [exp.get("recommendation")]
+                })
+        else:
+            exposures = self.exposure_mapper.build_all(entities)
+        
         self.observer.log_event(session_id, "exposures_mapped", exposures)
 
-        misuse_cases = self.misuse_simulator.run(exposures)
-        self.observer.log_event(session_id, "misuse_simulated", misuse_cases)
-
-        risk_results = self.risk_engine.evaluate(exposures, misuse_cases)
-        self.observer.log_event(session_id, "risk_assessed", risk_results)
-
-        report = self.report_generator.generate(
-            entities, exposures, misuse_cases, risk_results
-        )
-
-        # Store in graph
-        self.graph.store_entities(entities)
-        self.graph.store_relationships(relationships)
-        self.graph.store_exposures(exposures)
-
-        # Store report in database
-        self.storage.save_report(session_id, report)
-
-        # Memory learning
-        for person in entities.get("persons", []):
-            if person.get("embedding"):
-                match = self.memory.find_match(person["embedding"])
-                if not match:
-                    self.memory.store_person(person["entity_id"], person["embedding"], session_id)
-                    self.observer.log_learning(session_id, person["entity_id"], "new_entity_stored")
-
-        self.observer.log_event(session_id, "pipeline_complete", {"status": "success"})
+        misuse_cases = self.misuse_simulator.run(exposures) if not llm_exposures else [] # LLM handled misuse
+        risk_results = [] # LLM handled risk
         
-        # --- REASONING LAYER ---
+        # Prepare Risk Results format for Report Generator
+        if llm_exposures:
+             for exp in exposures:
+                 risk_results.append({
+                     "entity": exp["entity"],
+                     "exposure_type": exp["type"],
+                     "risk_score": exp["risk_score"],
+                     "severity": exp["severity"]
+                 })
+        else:
+            risk_results = self.risk_engine.evaluate(exposures, misuse_cases)
+
+        # Generate Reasoning Artifacts
         hypotheses = self.hypothesis_engine.generate(entities, relationships, exposures)
         behavior_patterns = self.behavior_analyzer.analyze(exposures)
         spatial_temporal_insights = self.spatial_reasoner.analyze(
@@ -81,19 +134,38 @@ class AgentController:
         self.observer.log_event(session_id, "hypotheses_generated", hypotheses)
         self.observer.log_event(session_id, "behavior_patterns_detected", behavior_patterns)
         self.observer.log_event(session_id, "spatial_temporal_insights", spatial_temporal_insights)
-        
+
         report = self.report_generator.generate(
             entities, exposures, misuse_cases, risk_results,
             hypotheses=hypotheses,
             behavior_patterns=behavior_patterns,
-            spatial_temporal_insights=spatial_temporal_insights
+            spatial_temporal_insights=spatial_temporal_insights,
+            llm_analysis=narrative_report,
+            raw_signals=signals
         )
+
+        self.graph.store_entities(entities)
+        self.graph.store_relationships(relationships)
+        self.graph.store_exposures(exposures)
+        
+        # Update in-memory graph cache
+        self.latest_graph_data = self._build_memory_graph(entities, relationships)
+
+        self.storage.save_report(session_id, report)
+
+        for person in entities.get("persons", []):
+            if person.get("embedding"):
+                match = self.memory.find_match(person["embedding"])
+                if not match:
+                    self.memory.store_person(person["entity_id"], person["embedding"], session_id)
+                    self.observer.log_learning(session_id, person["entity_id"], "new_entity_stored")
+
+        self.observer.log_event(session_id, "pipeline_complete", {"status": "success"})
 
         return {
             "entities": entities,
             "relationships": relationships,
+            "exposures": exposures,
+            "risk_results": risk_results,
             "report": report
         }
-        
-        
-
