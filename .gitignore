@@ -1,0 +1,52 @@
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.env
+.venv/
+venv/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Logs
+*.log
+logs/
+
+# Media & Sessions (CRITICAL)
+storage/sessions/
+storage/media/
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.wav
+*.mp3
+*.jpg
+*.png
+
+# Databases
+*.sqlite3
+*.db
+neo4j/data/
+redis/data/
+
+# Models
+models/*.pt
+models/*.h5
+models/*.onnx
+
+# Frontend builds
+frontend/**/dist/
+frontend/**/build/
+
+# Tests artifacts
+tests/output/
+
+# Session Data
+storage/sessions/
