@@ -1,4 +1,6 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from core.media.intake import MediaIntake
@@ -7,6 +9,7 @@ from graph.neo4j_client import Neo4jClient
 from agent.controller import AgentController
 
 app = FastAPI(title="OSINT Exposure Intelligence System")
+
 
 # Enable CORS for frontend dev usage
 app.add_middleware(
