@@ -242,7 +242,7 @@ class OSINTAnalyzer:
             "objects": [],
             "faces": [],
             "text": [],
-            "labels": []  # For Google Vision labels
+            "labels": []  
         }
         
         try:
