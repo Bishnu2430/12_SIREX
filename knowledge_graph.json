@@ -1,0 +1,342 @@
+{
+  "nodes": [
+    {
+      "id": "media_images (1)_1769819001",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T05:53:21.809130",
+      "last_seen": "2026-01-31T05:53:21.809130",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\images (1).jpg"
+      ],
+      "name": "images (1).jpg",
+      "path": "storage\\uploads\\images (1).jpg",
+      "type": "image/jpeg"
+    },
+    {
+      "id": "media_20251218_142244_1769819196",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T05:56:36.928975",
+      "last_seen": "2026-01-31T05:56:36.928975",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\20251218_142244.jpg"
+      ],
+      "name": "20251218_142244.jpg",
+      "path": "storage\\uploads\\20251218_142244.jpg",
+      "type": "image/jpeg"
+    },
+    {
+      "id": "location_20.298159299722222_85.84094419972222",
+      "entity_type": "Location",
+      "first_seen": "2026-01-31T05:56:36.932044",
+      "last_seen": "2026-01-31T05:56:36.932044",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\20251218_142244.jpg"
+      ],
+      "latitude": 20.298159299722222,
+      "longitude": 85.84094419972222,
+      "source": "GPS_EXIF"
+    },
+    {
+      "id": "media_20250417_163715_1769819369",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T05:59:29.610770",
+      "last_seen": "2026-01-31T05:59:29.610770",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\20250417_163715.jpg"
+      ],
+      "name": "20250417_163715.jpg",
+      "path": "storage\\uploads\\20250417_163715.jpg",
+      "type": "image/jpeg"
+    },
+    {
+      "id": "media_images (1)_1769823169",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T07:02:49.005223",
+      "last_seen": "2026-01-31T07:02:49.005223",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\images (1).jpg"
+      ],
+      "name": "images (1).jpg",
+      "path": "storage\\uploads\\images (1).jpg",
+      "type": "image/jpeg"
+    },
+    {
+      "id": "media_16577288-uhd_2160_3840_30fps_1769823289",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T07:04:49.008289",
+      "last_seen": "2026-01-31T07:04:49.008289",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\16577288-uhd_2160_3840_30fps.mp4"
+      ],
+      "name": "16577288-uhd_2160_3840_30fps.mp4",
+      "path": "storage\\uploads\\16577288-uhd_2160_3840_30fps.mp4",
+      "type": "video/mp4"
+    },
+    {
+      "id": "media_16577288-uhd_2160_3840_30fps_1769823336",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T07:05:36.980545",
+      "last_seen": "2026-01-31T07:05:36.980545",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\16577288-uhd_2160_3840_30fps.mp4"
+      ],
+      "name": "16577288-uhd_2160_3840_30fps.mp4",
+      "path": "storage\\uploads\\16577288-uhd_2160_3840_30fps.mp4",
+      "type": "video/mp4"
+    },
+    {
+      "id": "media_6200899-uhd_3840_2160_25fps_1769823368",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T07:06:08.001204",
+      "last_seen": "2026-01-31T07:06:08.001204",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\6200899-uhd_3840_2160_25fps.mp4"
+      ],
+      "name": "6200899-uhd_3840_2160_25fps.mp4",
+      "path": "storage\\uploads\\6200899-uhd_3840_2160_25fps.mp4",
+      "type": "video/mp4"
+    },
+    {
+      "id": "media_images (1)_1769823625",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T07:10:25.372583",
+      "last_seen": "2026-01-31T07:10:25.372583",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\images (1).jpg"
+      ],
+      "name": "images (1).jpg",
+      "path": "storage\\uploads\\images (1).jpg",
+      "type": "image/jpeg"
+    },
+    {
+      "id": "media_pexels-kseniachernaya-3951747_1769823717",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T07:11:57.282440",
+      "last_seen": "2026-01-31T07:11:57.282440",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\pexels-kseniachernaya-3951747.jpg"
+      ],
+      "name": "pexels-kseniachernaya-3951747.jpg",
+      "path": "storage\\uploads\\pexels-kseniachernaya-3951747.jpg",
+      "type": "image/jpeg"
+    },
+    {
+      "id": "media_7676998-hd_1080_1920_30fps_1769823871",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T07:14:31.082732",
+      "last_seen": "2026-01-31T07:14:31.082732",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\7676998-hd_1080_1920_30fps.mp4"
+      ],
+      "name": "7676998-hd_1080_1920_30fps.mp4",
+      "path": "storage\\uploads\\7676998-hd_1080_1920_30fps.mp4",
+      "type": "video/mp4"
+    },
+    {
+      "id": "media_7676998-hd_1080_1920_30fps_1769824156",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T07:19:16.279300",
+      "last_seen": "2026-01-31T07:19:16.279300",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\7676998-hd_1080_1920_30fps.mp4"
+      ],
+      "name": "7676998-hd_1080_1920_30fps.mp4",
+      "path": "storage\\uploads\\7676998-hd_1080_1920_30fps.mp4",
+      "type": "video/mp4"
+    },
+    {
+      "id": "media_20260131_005654_1769824423",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T07:23:43.955040",
+      "last_seen": "2026-01-31T07:23:43.955040",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\20260131_005654.jpg"
+      ],
+      "name": "20260131_005654.jpg",
+      "path": "storage\\uploads\\20260131_005654.jpg",
+      "type": "image/jpeg"
+    },
+    {
+      "id": "location_20.239106599722223_85.72231039972222",
+      "entity_type": "Location",
+      "first_seen": "2026-01-31T07:23:43.958796",
+      "last_seen": "2026-01-31T07:28:53.227459",
+      "seen_count": 2,
+      "sources": [
+        "storage\\uploads\\20260131_005654.jpg"
+      ],
+      "latitude": 20.239106599722223,
+      "longitude": 85.72231039972222,
+      "source": "GPS_EXIF"
+    },
+    {
+      "id": "media_20260131_005654_1769824733",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T07:28:53.225927",
+      "last_seen": "2026-01-31T07:28:53.225927",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\20260131_005654.jpg"
+      ],
+      "name": "20260131_005654.jpg",
+      "path": "storage\\uploads\\20260131_005654.jpg",
+      "type": "image/jpeg"
+    },
+    {
+      "id": "media_8034250-hd_1080_1920_30fps_1769824799",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T07:29:59.025436",
+      "last_seen": "2026-01-31T07:29:59.025436",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\8034250-hd_1080_1920_30fps.mp4"
+      ],
+      "name": "8034250-hd_1080_1920_30fps.mp4",
+      "path": "storage\\uploads\\8034250-hd_1080_1920_30fps.mp4",
+      "type": "video/mp4"
+    },
+    {
+      "id": "media_Untitled video - Made with Clipchamp_1769824888",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T07:31:28.322923",
+      "last_seen": "2026-01-31T07:31:28.322923",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\Untitled video - Made with Clipchamp.mp4"
+      ],
+      "name": "Untitled video - Made with Clipchamp.mp4",
+      "path": "storage\\uploads\\Untitled video - Made with Clipchamp.mp4",
+      "type": "video/mp4"
+    },
+    {
+      "id": "media_20260130_082858_1769825668",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T07:44:28.873775",
+      "last_seen": "2026-01-31T07:44:28.873775",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\20260130_082858.jpg"
+      ],
+      "name": "20260130_082858.jpg",
+      "path": "storage\\uploads\\20260130_082858.jpg",
+      "type": "image/jpeg"
+    },
+    {
+      "id": "location_20.2385549_85.7232596",
+      "entity_type": "Location",
+      "first_seen": "2026-01-31T07:44:28.879497",
+      "last_seen": "2026-01-31T07:44:28.879497",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\20260130_082858.jpg"
+      ],
+      "latitude": 20.2385549,
+      "longitude": 85.7232596,
+      "source": "GPS_EXIF"
+    },
+    {
+      "id": "media_Untitled video - Made with Clipchamp_1769825769",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T07:46:09.707945",
+      "last_seen": "2026-01-31T07:46:09.707945",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\Untitled video - Made with Clipchamp.mp4"
+      ],
+      "name": "Untitled video - Made with Clipchamp.mp4",
+      "path": "storage\\uploads\\Untitled video - Made with Clipchamp.mp4",
+      "type": "video/mp4"
+    },
+    {
+      "id": "media_20250826_083139_1769826058",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T07:50:58.111769",
+      "last_seen": "2026-01-31T07:50:58.111769",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\20250826_083139.jpg"
+      ],
+      "name": "20250826_083139.jpg",
+      "path": "storage\\uploads\\20250826_083139.jpg",
+      "type": "image/jpeg"
+    },
+    {
+      "id": "media_20250826_083139_1769826257",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T07:54:17.552609",
+      "last_seen": "2026-01-31T07:54:17.552609",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\20250826_083139.jpg"
+      ],
+      "name": "20250826_083139.jpg",
+      "path": "storage\\uploads\\20250826_083139.jpg",
+      "type": "image/jpeg"
+    },
+    {
+      "id": "media_20250417_162111_1769826416",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T07:56:56.053230",
+      "last_seen": "2026-01-31T07:56:56.053230",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\20250417_162111.jpg"
+      ],
+      "name": "20250417_162111.jpg",
+      "path": "storage\\uploads\\20250417_162111.jpg",
+      "type": "image/jpeg"
+    },
+    {
+      "id": "media_images (1)_1769826962",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T08:06:02.417515",
+      "last_seen": "2026-01-31T08:06:02.417515",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\images (1).jpg"
+      ],
+      "name": "images (1).jpg",
+      "path": "storage\\uploads\\images (1).jpg",
+      "type": "image/jpeg"
+    }
+  ],
+  "edges": [
+    {
+      "source": "media_20251218_142244_1769819196",
+      "target": "location_20.298159299722222_85.84094419972222",
+      "relationship_type": "captured_at",
+      "created": "2026-01-31T05:56:36.934091"
+    },
+    {
+      "source": "media_20260131_005654_1769824423",
+      "target": "location_20.239106599722223_85.72231039972222",
+      "relationship_type": "captured_at",
+      "created": "2026-01-31T07:23:43.962697"
+    },
+    {
+      "source": "media_20260131_005654_1769824733",
+      "target": "location_20.239106599722223_85.72231039972222",
+      "relationship_type": "captured_at",
+      "created": "2026-01-31T07:28:53.230606"
+    },
+    {
+      "source": "media_20260130_082858_1769825668",
+      "target": "location_20.2385549_85.7232596",
+      "relationship_type": "captured_at",
+      "created": "2026-01-31T07:44:28.894836"
+    }
+  ]
+}

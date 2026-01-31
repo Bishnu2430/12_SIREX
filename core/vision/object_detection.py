@@ -7,11 +7,19 @@ except ImportError:
     YOLO = None
 
 class ObjectDetector:
-    def __init__(self, model_path: str = "yolov8n.pt"):
+    def __init__(self, model_path: str = None):
         if YOLO is None:
             logger.warning("ultralytics not installed - object detection disabled")
             self.model = None
             return
+
+        # Use config if available
+        if model_path is None:
+            try:
+                from app.config import config
+                model_path = config.YOLO_MODEL_PATH
+            except:
+                model_path = "models/yolov8n.pt"
 
         try:
             self.model = YOLO(model_path)

@@ -24,3 +24,13 @@ streamlit
 plotly
 google-generativeai
 python-dotenv
+
+# New dependencies for enhanced architecture
+loguru
+networkx
+exifread
+python-magic-bin
+pydantic-settings
+SpeechRecognition
+google-cloud-vision
+paddleocr

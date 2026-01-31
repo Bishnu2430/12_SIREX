@@ -44,15 +44,20 @@ class EntityBuilder:
 
     def build_organization_entities(self, ocr_text):
         orgs = []
+        if not ocr_text or not isinstance(ocr_text, list):
+            return orgs
+            
         keywords = ["corp", "ltd", "inc", "university", "bank", "company"]
         for item in ocr_text:
+            if not isinstance(item, dict) or "text" not in item:
+                continue
             text_lower = item["text"].lower()
             if any(k in text_lower for k in keywords):
                 orgs.append({
                     "entity_id": f"Org_{uuid.uuid4().hex[:8]}",
                     "type": "Organization",
                     "name": item["text"],
-                    "confidence": item["confidence"]
+                    "confidence": item.get("confidence", 0.0)
                 })
         return orgs
 

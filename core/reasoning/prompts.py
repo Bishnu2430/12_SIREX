@@ -57,10 +57,25 @@ CORE_ANALYSIS_INSTRUCTIONS = """Analyze the input signals provided below using t
 7. OSINT TECHNIQUES USED
    - Explicitly name the OSINT techniques applied.
 
-=== OUTPUT FORMAT (STRICT JSON) ===
-Ensure the response is a valid JSON object with the following structure. Do NOT include any text before or after the JSON.
+=== OUTPUT FORMAT ===
+You must think step-by-step before providing the final JSON. 
+Format your response exactly as follows:
 
+# ANALYSIS
+**Observations**:
+- [Visual] ...
+- [Audio] ...
+- [Metadata] ...
+
+**Deductions**:
+- Since [Observation A] and [Observation B], it is likely that...
+
+**Hypotheses**:
+- [H1] ...
+
+```json
 {
+  "thought_process": "Summarize the above reasoning here for machine processing...",
   "narrative_report": "Full OSINT analysis text with sections [1]-[7]...",
   "exposures": [
     {
@@ -78,6 +93,7 @@ Ensure the response is a valid JSON object with the following structure. Do NOT 
       "details": "Additional context"
     }
   ]
-}"""
+}
+```"""
 
 ANTI_HALLUCINATION_PROMPT = "If information cannot be validated using open-source reasoning, explicitly label it as speculative and assign low confidence."

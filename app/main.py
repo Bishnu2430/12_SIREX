@@ -1,144 +1,363 @@
-import os, logging
-from fastapi import FastAPI, UploadFile, File, HTTPException
+"""
+FastAPI Server for OSINT Backend
+Provides RESTful API for media analysis and knowledge graph access
+"""
+
+import os
+import sys
+from pathlib import Path
+from typing import Optional
+import shutil
+import time
+
+# Add parent directory to path
+sys.path.insert(0, str(Path(__file__).parent))
+
+from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, Query, Form
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from loguru import logger
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+from config import settings
+from core.osint_analyzer import OSINTAnalyzer
 
-from core.media.intake import MediaIntake
-from core.media.frame_extractor import FrameExtractor
-from core.media.audio_extractor import AudioExtractor
-from core.media.metadata import MetadataExtractor
-from core.vision.object_detection import ObjectDetector
-from core.vision.face_detection import FaceDetector
-from core.vision.face_embedding import FaceEmbedder
-from core.vision.scene_classification import SceneClassifier
-from core.vision.ocr_reader import OCRReader
-from core.vision.landmark_similarity import LandmarkSimilarity
-from core.audio.speech_detection import SpeechDetector
-from core.audio.language_detection import LanguageDetector
-from core.audio.sound_classification import SoundClassifier
-from core.audio.speaker_embedding import SpeakerEmbedder
-from agent.controller import AgentController
-from graph.neo4j_client import Neo4jClient
-from app.config import config
+# Configure logger
+logger.add(
+    "logs/osint_backend.log",
+    rotation="100 MB",
+    retention="30 days",
+    level="INFO"
+)
 
-app = FastAPI(title="OSINT Exposure Intelligence System", version="1.0.0")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+# Initialize FastAPI
+app = FastAPI(
+    title="OSINT Backend API",
+    description="Comprehensive media analysis with maximum intelligence extraction",
+    version="1.0.0"
+)
 
-controller = AgentController()
-graph_client = Neo4jClient()
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Initialize OSINT Analyzer
+analyzer = OSINTAnalyzer(graph_storage_path="knowledge_graph.json")
+
+# Request/Response Models
+class AnalysisRequest(BaseModel):
+    context: Optional[str] = "OSINT Investigation"
+    update_graph: Optional[bool] = True
+
+class GraphQueryRequest(BaseModel):
+    entity_type: Optional[str] = None
+    properties: Optional[dict] = {}
+
+# Storage for analysis results
+analysis_cache = {}
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize on startup"""
+    logger.info("=== OSINT Backend Starting ===")
+    logger.info(f"Upload directory: {settings.UPLOAD_DIR}")
+    logger.info(f"Output directory: {settings.OUTPUT_DIR}")
+    
+    # Ensure directories exist
+    settings.UPLOAD_DIR.mkdir(exist_ok=True)
+    settings.OUTPUT_DIR.mkdir(exist_ok=True)
+    settings.CACHE_DIR.mkdir(exist_ok=True)
+    
+    # Log component status
+    logger.info("Analyzer components ready")
+
 
 @app.get("/")
 async def root():
-    return {"status": "online", "service": "OSINT Exposure Intelligence System"}
+    """API root"""
+    return {
+        "service": "OSINT Backend API",
+        "version": "1.0.0",
+        "status": "operational",
+        "endpoints": {
+            "health": "/health",
+            "analyze": "/api/analyze",
+            "graph": "/api/graph/*",
+            "docs": "/docs"
+        }
+    }
 
-@app.post("/analyze")
-async def analyze_media(file: UploadFile = File(...)):
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    stats = analyzer.get_graph_statistics()
+    
+    return {
+        "status": "healthy",
+        "timestamp": time.time(),
+        "components": {
+            "llm": "operational" if analyzer.llm.model else "not_configured",
+            "vision": "operational" if analyzer.vision.is_enabled() else "not_configured",
+            "audio": "operational",
+            "metadata": "operational",
+            "graph": "operational"
+        },
+        "graph_stats": stats
+    }
+
+
+import math
+
+def sanitize_for_json(obj):
+    """Recursively replace NaN/Infinity with None/0 for JSON compliance"""
+    if isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return 0.0
+        return obj
+    elif isinstance(obj, dict):
+        return {k: sanitize_for_json(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [sanitize_for_json(v) for v in obj]
+    return obj
+
+
+
+
+
+@app.post("/api/analyze")
+async def analyze_media(
+    file: UploadFile = File(...),
+    context: str = Form("OSINT Investigation"),
+    update_graph: bool = Form(True),
+    background_tasks: BackgroundTasks = None
+):
+    """
+    Analyze uploaded media file
+    
+    Returns comprehensive analysis cleaned of non-JSON compliant values
+    """
     try:
-        os.makedirs(config.UPLOAD_DIR, exist_ok=True)
-        file_path = os.path.join(config.UPLOAD_DIR, file.filename)
+        # Validate file size
+        file_size = 0
+        content = await file.read()
+        file_size = len(content)
+        
+        max_size = settings.MAX_FILE_SIZE_MB * 1024 * 1024
+        if file_size > max_size:
+            raise HTTPException(
+                status_code=413,
+                detail=f"File too large. Max size: {settings.MAX_FILE_SIZE_MB}MB"
+            )
+        
+        # Save uploaded file
+        file_path = settings.UPLOAD_DIR / file.filename
+        
         with open(file_path, "wb") as f:
-            f.write(await file.read())
+            f.write(content)
         
-        intake = MediaIntake(file_path)
-        info = intake.process()
-        metadata = MetadataExtractor(file_path).extract()
+        logger.info(f"File uploaded: {file.filename} ({file_size / 1024:.1f} KB)")
         
-        frames = []
-        audio_path = None
-        
-        if info["media_type"] == "video":
-            try:
-                frames = FrameExtractor(file_path, info["workspace"]).extract()["frames"]
-                audio_path = AudioExtractor(file_path, info["workspace"]).extract()["audio_path"]
-            except: pass
-        elif info["media_type"] == "image":
-            frames = [{"path": file_path}]
-        elif info["media_type"] == "audio":
-            audio_path = file_path
-        
-        all_faces, all_embeddings, all_objects, all_scenes, all_text, all_landmarks = [], [], [], [], [], []
-        
-        obj_detector = ObjectDetector(config.YOLO_MODEL_PATH)
-        face_detector = FaceDetector(config.FACE_DETECTION_BACKEND)
-        face_embedder = FaceEmbedder(config.FACE_EMBEDDING_MODEL)
-        scene_classifier = SceneClassifier()
-        ocr_reader = OCRReader()
-        landmark_sim = LandmarkSimilarity(config.LANDMARK_DIR)
-        
-        for frame in frames[:config.MAX_FRAMES_TO_PROCESS]:
-            img_path = frame["path"]
-            try: all_objects.extend(obj_detector.detect(img_path))
-            except: pass
-            try:
-                faces = face_detector.detect_faces(img_path)
-                all_faces.extend(faces)
-                for face in faces:
-                    all_embeddings.append(face_embedder.get_embedding(img_path, face["bbox"]))
-            except: pass
-            try: all_scenes.extend(scene_classifier.classify(img_path))
-            except: pass
-            try: all_text.extend(ocr_reader.read_text(img_path))
-            except: pass
-            try: all_landmarks.extend(landmark_sim.compare(img_path))
-            except: pass
-        
-        audio_signals = {}
-        if audio_path and os.path.exists(audio_path):
-            try: audio_signals["speech"] = SpeechDetector().detect(audio_path)
-            except: pass
-            try: audio_signals["language"] = LanguageDetector().detect(audio_path)
-            except: pass
-            try: audio_signals["environment"] = SoundClassifier().classify(audio_path)
-            except: pass
-            try: audio_signals["speaker_embedding"] = SpeakerEmbedder().extract(audio_path).tolist()
-            except: pass
-        
-        signals = {
-            "faces": all_faces, "embeddings": all_embeddings, "objects": all_objects,
-            "scene": all_scenes, "ocr_text": all_text, "landmarks": all_landmarks,
-            "metadata": metadata, "audio": audio_signals,
-            "file_path": file_path
-        }
-        
-        result = controller.run_pipeline(signals, info["session_id"])
-        
-        return {
-            "session_id": info["session_id"],
-            "media_type": info["media_type"],
-            "report": result["report"],
-            "summary": {
-                "faces_detected": len(all_faces),
-                "objects_detected": len(all_objects),
-                "exposures_identified": len(result.get("exposures", []))
-            }
-        }
+        # Run analysis
+        try:
+            results = analyzer.analyze_media(
+                file_path=str(file_path),
+                context=context,
+                update_graph=update_graph
+            )
+            
+            # Cache results
+            analysis_id = f"{int(time.time())}_{file.filename}"
+            analysis_cache[analysis_id] = results
+            results["analysis_id"] = analysis_id
+            
+            # Sanitize to prevent JSON errors (NaN/Infinity)
+            clean_results = sanitize_for_json(results)
+            
+            return JSONResponse(content=clean_results)
+            
+        finally:
+            # Clean up upload file in background
+            if background_tasks:
+                background_tasks.add_task(cleanup_file, file_path)
+            elif file_path.exists():
+                try:
+                    os.remove(file_path)
+                except:
+                    pass
+    
     except Exception as e:
-        logger.exception(f"Analysis failed: {e}")
+        logger.error(f"Analysis failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/graph")
-async def get_graph():
-    data = {"nodes": [], "links": []}
-    try:
-        data = graph_client.get_graph_data()
-    except:
-        pass
-    
-    # Fallback to in-memory graph from latest session if DB is empty/down
-    if not data.get("nodes") and controller.latest_graph_data.get("nodes"):
-        return controller.latest_graph_data
-        
-    return data
 
-@app.get("/logs/{session_id}")
-async def get_session_logs(session_id: str):
+@app.get("/api/analysis/{analysis_id}")
+async def get_analysis(analysis_id: str):
+    """Get cached analysis results"""
+    if analysis_id not in analysis_cache:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+    
+    return analysis_cache[analysis_id]
+
+
+@app.get("/api/graph/statistics")
+async def get_graph_statistics():
+    """Get knowledge graph statistics"""
+    return analyzer.get_graph_statistics()
+
+
+@app.get("/api/graph/export")
+async def export_graph():
+    """Export knowledge graph for visualization"""
+    return analyzer.export_graph_visualization()
+
+
+@app.get("/api/graph/entity/{entity_id}")
+async def get_entity(entity_id: str):
+    """Get entity details"""
+    entity = analyzer.graph.get_entity(entity_id)
+    
+    if not entity:
+        raise HTTPException(status_code=404, detail="Entity not found")
+    
+    return entity
+
+
+@app.get("/api/graph/entity/{entity_id}/network")
+async def get_entity_network(
+    entity_id: str,
+    depth: int = Query(default=2, ge=1, le=5)
+):
+    """Get network of entities connected to this entity"""
+    network = analyzer.get_entity_network(entity_id, depth=depth)
+    
+    if not network:
+        raise HTTPException(status_code=404, detail="Entity not found")
+    
+    return network
+
+
+@app.get("/api/graph/entity/{entity_id}/relationships")
+async def get_entity_relationships(
+    entity_id: str,
+    direction: str = Query(default="both", regex="^(incoming|outgoing|both)$")
+):
+    """Get all relationships for an entity"""
+    relationships = analyzer.graph.get_relationships(entity_id, direction=direction)
+    
+    return {
+        "entity_id": entity_id,
+        "direction": direction,
+        "relationships": relationships,
+        "count": len(relationships)
+    }
+
+
+@app.post("/api/graph/search")
+async def search_entities(request: GraphQueryRequest):
+    """Search for entities matching criteria"""
+    results = analyzer.graph.find_entity(
+        entity_type=request.entity_type,
+        **request.properties
+    )
+    
+    return {
+        "query": {
+            "entity_type": request.entity_type,
+            "properties": request.properties
+        },
+        "results": results,
+        "count": len(results)
+    }
+
+
+@app.delete("/api/graph/clear")
+async def clear_graph():
+    """Clear all knowledge graph data (use with caution)"""
+    analyzer.graph.clear()
+    return {"status": "success", "message": "Knowledge graph cleared"}
+
+
+@app.get("/api/graph/location/nearby")
+async def find_nearby_locations(
+    latitude: float = Query(...),
+    longitude: float = Query(...),
+    radius_km: float = Query(default=1.0, ge=0.1, le=100.0)
+):
+    """Find locations within radius of coordinates"""
+    matches = analyzer.graph.match_location(latitude, longitude, radius_km)
+    
+    entities = [analyzer.graph.get_entity(entity_id) for entity_id in matches]
+    
+    return {
+        "query": {
+            "latitude": latitude,
+            "longitude": longitude,
+            "radius_km": radius_km
+        },
+        "matches": entities,
+        "count": len(entities)
+    }
+
+
+@app.get("/api/model/info")
+async def get_model_info():
+    """Get information about active AI models"""
+    return {
+        "llm": analyzer.llm.get_model_info(),
+        "vision": {
+            "enabled": analyzer.vision.is_enabled(),
+            "service": "Google Cloud Vision API"
+        },
+        "audio": {
+            "enabled": True,
+            "features": ["transcription", "acoustic_analysis", "speech_characteristics"]
+        }
+    }
+
+
+@app.post("/api/test/connection")
+async def test_connections():
+    """Test all component connections"""
+    results = {
+        "llm": analyzer.llm.test_connection(),
+        "vision": analyzer.vision.is_enabled(),
+        "audio": True,  # Audio analyzer doesn't need external connection
+        "graph": True
+    }
+    
+    return {
+        "status": "success" if all(results.values()) else "partial",
+        "components": results
+    }
+
+
+# Utility functions
+def cleanup_file(file_path: Path):
+    """Clean up temporary file"""
     try:
-        return {"session_id": session_id, "logs": controller.observer.get_logs(session_id)}
-    except:
-        return {"session_id": session_id, "logs": []}
+        if file_path.exists():
+            file_path.unlink()
+            logger.debug(f"Cleaned up: {file_path}")
+    except Exception as e:
+        logger.error(f"Cleanup failed: {e}")
+
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    
+    logger.info(f"Starting server on {settings.HOST}:{settings.PORT}")
+    
+    uvicorn.run(
+        "main:app",
+        host=settings.HOST,
+        port=settings.PORT,
+        reload=settings.DEBUG,
+        log_level="info"
+    )

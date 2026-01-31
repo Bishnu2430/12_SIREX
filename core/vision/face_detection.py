@@ -8,7 +8,12 @@ except ImportError:
 
 class FaceDetector:
     def __init__(self, backend: str = "opencv"):
-        self.backend = backend
+        from app.config import config
+        self.backend = config.FACE_DETECTION_BACKEND if hasattr(config, 'FACE_DETECTION_BACKEND') else backend
+
+    def detect(self, image_path: str):
+        """Main interface matching controller usage"""
+        return self.detect_faces(image_path)
 
     def detect_faces(self, image_path: str):
         if DeepFace is None:

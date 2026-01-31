@@ -12,16 +12,35 @@ logger = logging.getLogger(__name__)
 
 class LLMClient:
     def __init__(self):
-        api_key = os.getenv("GOOGLE_API_KEY")
+        from app.config import config
+        api_key = config.GOOGLE_API_KEY
         if not api_key:
             logger.warning("GOOGLE_API_KEY not found. LLM analysis will be disabled.")
             self.model = None
             return
 
         try:
+            from app.config import config
             genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel("gemini-1.5-flash")
-            logger.info("LLM Client initialized with Gemini 1.5 Flash")
+            
+            # Enable Search Tool
+            tools = [
+                {"google_search_retrieval": {
+                    "dynamic_retrieval_config": {
+                        "mode": "dynamic",
+                        "dynamic_threshold": 0.3,
+                    }
+                }}
+            ]
+            
+            # Use just the model name without any prefix
+            model_name = config.LLM_MODEL
+            # Remove any "models/" prefix if present
+            if model_name.startswith("models/"):
+                model_name = model_name.replace("models/", "")
+            
+            self.model = genai.GenerativeModel(model_name, tools=tools)
+            logger.info(f"LLM Client initialized with {model_name} and Search Grounding")
         except Exception as e:
             logger.error(f"Failed to initialize LLM Client: {e}")
             self.model = None
@@ -46,27 +65,32 @@ class LLMClient:
             if image_path and os.path.exists(image_path):
                 import mimetypes
                 import time
+                import mimetypes
+                import time
                 mime_type, _ = mimetypes.guess_type(image_path)
                 
+                # Check for video or audio
                 is_video = mime_type and mime_type.startswith('video')
+                is_audio = mime_type and mime_type.startswith('audio')
                 
-                if is_video:
+                if is_video or is_audio:
                     try:
-                        logger.info(f"Uploading video for analysis: {image_path}")
+                        media_type = "video" if is_video else "audio"
+                        logger.info(f"Uploading {media_type} for analysis: {image_path}")
                         uploaded_file = genai.upload_file(image_path)
                         
-                        # Wait for video processing
+                        # Wait for processing
                         while uploaded_file.state.name == "PROCESSING":
                             time.sleep(2)
                             uploaded_file = genai.get_file(uploaded_file.name)
                             
                         if uploaded_file.state.name == "FAILED":
-                            raise ValueError("Video processing failed.")
+                            raise ValueError(f"{media_type} processing failed.")
                             
-                        logger.info(f"Video processing complete: {uploaded_file.uri}")
+                        logger.info(f"{media_type} processing complete: {uploaded_file.uri}")
                         content.append(uploaded_file)
                     except Exception as vid_e:
-                        logger.warning(f"Failed to process video: {vid_e}")
+                        logger.warning(f"Failed to process media file: {vid_e}")
                 else:
                     try:
                         from PIL import Image
@@ -93,10 +117,37 @@ class LLMClient:
                     pass
 
             import json
+            import re
+            
             try:
-                text = response.text.replace("```json", "").replace("```", "").strip()
-                return json.loads(text)
-            except json.JSONDecodeError:
+                text = response.text
+                reasoning_text = ""
+                json_data = {"narrative_report": text, "exposures": []}
+                
+                # Attempt to find JSON block using regex if direct parse fails
+                json_match = re.search(r'\{.*\}', text, re.DOTALL)
+                
+                if json_match:
+                     json_str = json_match.group(0)
+                     # Capture text BEFORE the JSON as reasoning
+                     reasoning_text = text[:json_match.start()].strip()
+                     try:
+                        json_data = json.loads(json_str)
+                     except:
+                        pass
+                else:
+                    # Try cleaning code blocks manually as fallback
+                    clean_text = text.replace("```json", "").replace("```", "").strip()
+                    try:
+                        json_data = json.loads(clean_text)
+                    except:
+                        pass
+                
+                json_data["reasoning_trace"] = reasoning_text
+                return json_data
+                    
+            except Exception as parse_e:
+                logger.error(f"Failed to parse LLM JSON: {parse_e}")
                 return {"narrative_report": response.text, "exposures": []}
 
         except Exception as e:

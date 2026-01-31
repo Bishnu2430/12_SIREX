@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  osint-backend:
+    build: .
+    container_name: osint_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DEBUG=false
+    volumes:
+      - ./uploads:/app/uploads
+      - ./outputs:/app/outputs
+      - ./cache:/app/cache
+      - ./logs:/app/logs
+      - ./knowledge_graph.json:/app/knowledge_graph.json
+      - ${GOOGLE_APPLICATION_CREDENTIALS:-./credentials.json}:/app/credentials.json:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Optional: Neo4j for enhanced graph database
+  neo4j:
+    image: neo4j:5-community
+    container_name: osint_neo4j
+    ports:
+      - "7474:7474"  # HTTP
+      - "7687:7687"  # Bolt
+    environment:
+      - NEO4J_AUTH=neo4j/bishnu345
+    volumes:
+      - neo4j_data:/data
+    restart: unless-stopped
+    profiles:
+      - with-neo4j
+
+  # Optional: Redis for caching
+  redis:
+    image: redis:7-alpine
+    container_name: osint_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    profiles:
+      - with-redis
+
+volumes:
+  neo4j_data:
+  redis_data:

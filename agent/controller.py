@@ -10,6 +10,9 @@ from graph.neo4j_client import Neo4jClient
 from storage.postgres import PostgresStorage
 from core.reasoning.hypothesis_engine import HypothesisEngine
 from core.reasoning.behavior_analysis import BehaviorAnalyzer
+from core.vision.object_detection import ObjectDetector
+from core.vision.face_detection import FaceDetector
+from core.vision.ocr_reader import OCRReader
 from core.reasoning.spatial_temporal import SpatialTemporalReasoner
 import logging
 
@@ -30,6 +33,11 @@ class AgentController:
         self.observer = Observability()
         from core.reasoning.llm_client import LLMClient
         self.llm_client = LLMClient()
+        
+        # Tools
+        self.object_detector = ObjectDetector()
+        self.face_detector = FaceDetector()
+        self.ocr_reader = OCRReader()
         self.graph = Neo4jClient()
         self.storage = PostgresStorage()
         self.latest_graph_data = {"nodes": [], "links": []}
@@ -55,37 +63,64 @@ class AgentController:
             
         return {"nodes": nodes, "links": links}
 
-    def run_pipeline(self, signals, session_id):
+    def run_pipeline(self, signals, session_id, image_path=None): # Added image_path
         logger.info(f"Starting pipeline for session: {session_id}")
         self.observer.log_event(session_id, "pipeline_start", {"session_id": session_id})
 
+        # Run Local Vision Models (Parallel-ish execution logic here or sequential for simplicity)
+        vision_results = {}
+        if image_path:
+            # YOLO
+            vision_results["objects"] = self.object_detector.detect(image_path)
+            
+            # Face
+            vision_results["faces"] = self.face_detector.detect(image_path)
+            
+            # OCR
+            vision_results["ocr"] = self.ocr_reader.read_text(image_path)
+
+        signals.update(vision_results)
+        self.observer.log_event(session_id, "vision_analysis_complete", {k: len(v) if isinstance(v, list) else "Data" for k, v in vision_results.items()})
+
+        # LLM Analysis (Early Execution for Exposure Mapping)
+        llm_result = self.llm_client.analyze_signals(signals, image_path=image_path)
+        
+        narrative_report = llm_result.get("narrative_report", "")
+        llm_exposures = llm_result.get("exposures", [])
+        reasoning_trace = llm_result.get("reasoning_trace", "")
+        
+        self.observer.log_event(session_id, "llm_analysis_complete", {"status": "success"})
+        if reasoning_trace:
+            self.observer.log_event(session_id, "agent_reasoning_trace", {"trace": reasoning_trace})
+
+        # Entity Building (Graph)
         entities = self.entity_builder.build_all(signals)
         
         # ----------------------------------------------------
-        # ENTITY RE-IDENTIFICATION (MEMORY CHECK)
+        # ENTITY RE-IDENTIFICATION & PERSISTENCE (MEMORY)
         # ----------------------------------------------------
+        # 1. Persons (Biometric Re-ID)
         for person in entities.get("persons", []):
             if person.get("embedding"):
-                # Check if we have seen this face before
                 match_id = self.memory.find_match(person["embedding"])
                 if match_id:
                     logger.info(f"Re-identified Person: {match_id}")
-                    person["entity_id"] = match_id # Link to existing identity
+                    person["entity_id"] = match_id
                     person["reidentified"] = True
+                else:
+                    self.memory.store_person(person["entity_id"], person["embedding"], session_id)
+
+        # 2. Locations (Name/GPS Match) - Simple string match for now, could use vector search too
+        # For now, we assume graph.neo4j handles MERGE by name, but we want to know if it's "known"
+        # Since we don't have embeddings for locations implemented yet, we rely on Graph MERGE.
+        # But we can tag them for the report.
+        
+        # 3. Events - Same as locations.
         
         self.observer.log_event(session_id, "entities_built", entities)
 
         relationships = self.relationship_mapper.build_all(entities, signals)
         self.observer.log_event(session_id, "relationships_built", relationships)
-
-        # LLM Analysis (Early Execution for Exposure Mapping)
-        image_path = signals.get("file_path")
-        llm_result = self.llm_client.analyze_signals(signals, image_path=image_path)
-        
-        narrative_report = llm_result.get("narrative_report", "")
-        llm_exposures = llm_result.get("exposures", [])
-        
-        self.observer.log_event(session_id, "llm_analysis_complete", {"status": "success"})
 
         # Map Exposures: Prefer LLM exposures, fallback to hardcoded
         if llm_exposures:
