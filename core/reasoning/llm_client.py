@@ -1,5 +1,6 @@
 import os
 import logging
+import time
 import google.generativeai as genai
 from core.reasoning.prompts import (
     SYSTEM_ROLE_PROMPT,
@@ -23,24 +24,24 @@ class LLMClient:
             from app.config import config
             genai.configure(api_key=api_key)
             
-            # Enable Search Tool
-            tools = [
-                {"google_search_retrieval": {
-                    "dynamic_retrieval_config": {
-                        "mode": "dynamic",
-                        "dynamic_threshold": 0.3,
-                    }
-                }}
-            ]
+            # REMOVED Google Search Tool to reduce quota usage
+            # If you need search, add it back but be aware of rate limits
             
-            # Use just the model name without any prefix
+            # Use stable model name
             model_name = config.LLM_MODEL
+            
+            # Fix model name - use stable version
+            if not model_name or "2.5" in model_name:
+                logger.warning(f"Invalid model '{model_name}', using gemini-1.5-flash instead")
+                model_name = "gemini-1.5-flash"
+            
             # Remove any "models/" prefix if present
             if model_name.startswith("models/"):
                 model_name = model_name.replace("models/", "")
             
-            self.model = genai.GenerativeModel(model_name, tools=tools)
-            logger.info(f"LLM Client initialized with {model_name} and Search Grounding")
+            # Initialize WITHOUT search tool to reduce quota
+            self.model = genai.GenerativeModel(model_name)
+            logger.info(f"LLM Client initialized with {model_name}")
         except Exception as e:
             logger.error(f"Failed to initialize LLM Client: {e}")
             self.model = None
@@ -100,13 +101,39 @@ class LLMClient:
                     except Exception as img_e:
                         logger.warning(f"Failed to load image for LLM: {img_e}")
 
-            # Using JSON mode if model supports it, otherwise prompt engineering handles it
-            generation_config = {"response_mime_type": "application/json"}
-            try:
-                response = self.model.generate_content(content, generation_config=generation_config)
-            except:
-                # Fallback
-                response = self.model.generate_content(content)
+            # Retry logic with exponential backoff
+            max_retries = 3
+            retry_delay = 2
+            response = None
+            
+            for attempt in range(max_retries):
+                try:
+                    # Using JSON mode if model supports it
+                    generation_config = {"response_mime_type": "application/json"}
+                    try:
+                        response = self.model.generate_content(content, generation_config=generation_config)
+                    except:
+                        # Fallback without JSON mode
+                        response = self.model.generate_content(content)
+                    
+                    # Success - break retry loop
+                    break
+                    
+                except Exception as api_error:
+                    error_msg = str(api_error)
+                    
+                    # Check if it's a rate limit error
+                    if "quota" in error_msg.lower() or "limit" in error_msg.lower() or "429" in error_msg:
+                        if attempt < max_retries - 1:
+                            wait_time = retry_delay * (2 ** attempt)  # Exponential backoff
+                            logger.warning(f"Rate limit hit, retrying in {wait_time}s (attempt {attempt + 1}/{max_retries})")
+                            time.sleep(wait_time)
+                        else:
+                            logger.error(f"Rate limit exhausted after {max_retries} attempts")
+                            raise Exception(f"Gemini API quota exhausted. Please check your API key limits or try again later.")
+                    else:
+                        # Non-rate-limit error, don't retry
+                        raise
             
             # Cleanup uploaded file
             if uploaded_file:
@@ -119,31 +146,6 @@ class LLMClient:
             import json
             import re
             
-            try:
-                text = response.text
-                reasoning_text = ""
-                json_data = {"narrative_report": text, "exposures": []}
-                
-                # Attempt to find JSON block using regex if direct parse fails
-                json_match = re.search(r'\{.*\}', text, re.DOTALL)
-                
-                if json_match:
-                     json_str = json_match.group(0)
-                     # Capture text BEFORE the JSON as reasoning
-                     reasoning_text = text[:json_match.start()].strip()
-                     try:
-                        json_data = json.loads(json_str)
-                     except:
-                        pass
-                else:
-                    # Try cleaning code blocks manually as fallback
-                    clean_text = text.replace("```json", "").replace("```", "").strip()
-                    try:
-                        json_data = json.loads(clean_text)
-                    except:
-                        pass
-                
-                json_data["reasoning_trace"] = reasoning_text
                 return json_data
                     
             except Exception as parse_e:

@@ -22,13 +22,10 @@ class LLMReasoning:
     - Vision + multimodal support
     """
     
-    # Updated model hierarchy with 2.5 Flash
-    # Updated model hierarchy based on availability
-    MODELS = [
-        "gemini-2.0-flash",              # PRIMARY - Stable & Available
-        "gemini-2.5-flash",              # Newer (if available)
-        "gemini-1.5-flash",              # Reliable fallback
-        "gemini-1.5-pro",                # Heavy duty fallback
+    GEMINI_MODELS = [
+        "gemini-1.5-flash",              # Fast, efficient
+        "gemini-1.5-flash-latest",       # Latest version
+        "gemini-1.5-pro",                # More capable
     ]
     
     def __init__(self):
@@ -59,7 +56,7 @@ class LLMReasoning:
         available_models = self._get_available_models()
         logger.info(f"Available Gemini models: {available_models}")
         
-        for model_name in self.MODELS:
+        for model_name in self.GEMINI_MODELS:
             # Check if model exists in available models
             if any(model_name in avail for avail in available_models):
                 try:
@@ -595,7 +592,7 @@ class LLMReasoning:
         """Get current model information"""
         return {
             "model": self.model_name,
-            "available": self.model is not None,
-            "api_key_set": bool(self.api_key),
+            "available": 1 if self.model is not None else 0,
+            "api_key_set": 1 if self.api_key else 0,
             "reasoning_steps": len(self.reasoning_traces)
         }

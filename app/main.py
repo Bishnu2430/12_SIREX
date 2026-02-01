@@ -21,6 +21,10 @@ from loguru import logger
 
 from config import settings
 from core.osint_analyzer import OSINTAnalyzer
+from core.github.github_analyzer import GitHubAnalyzer
+from core.twitter.twitter_analyzer import TwitterAnalyzer
+from core.ip.ip_analyzer import IPAnalyzer
+from core.spiderfoot.spiderfoot_client import SpiderFootClient
 
 # Configure logger
 logger.add(
@@ -48,6 +52,39 @@ app.add_middleware(
 
 # Initialize OSINT Analyzer
 analyzer = OSINTAnalyzer(graph_storage_path="knowledge_graph.json")
+
+# Initialize GitHub Analyzer
+github_analyzer = None
+if settings.GITHUB_ACCESS_TOKEN:
+    try:
+        github_analyzer = GitHubAnalyzer(settings.GITHUB_ACCESS_TOKEN)
+        logger.info("✓ GitHub analyzer initialized")
+    except Exception as e:
+        logger.warning(f"GitHub analyzer initialization failed: {e}")
+else:
+    logger.warning("GitHub access token not configured")
+
+# Initialize Twitter Analyzer
+twitter_analyzer = None
+if settings.TWITTER_BEARER_TOKEN:
+    try:
+        twitter_analyzer = TwitterAnalyzer(settings.TWITTER_BEARER_TOKEN)
+        logger.info("✓ Twitter analyzer initialized")
+    except Exception as e:
+        logger.warning(f"Twitter analyzer initialization failed: {e}")
+else:
+    logger.warning("Twitter bearer token not configured")
+
+# Initialize IP Analyzer (no API key required, but AbuseIPDB is optional)
+ip_analyzer = IPAnalyzer(abuseipdb_key=settings.ABUSEIPDB_API_KEY if settings.ABUSEIPDB_API_KEY else None)
+logger.info("✓ IP analyzer initialized")
+
+# Initialize SpiderFoot Client
+spiderfoot_client = SpiderFootClient(base_url="http://localhost:5001")
+if spiderfoot_client.check_health():
+    logger.info("✓ SpiderFoot client initialized and connected")
+else:
+    logger.warning("SpiderFoot not accessible at http://localhost:5001")
 
 # Request/Response Models
 class AnalysisRequest(BaseModel):
@@ -114,17 +151,36 @@ async def health_check():
 
 
 import math
+import numpy as np
 
 def sanitize_for_json(obj):
-    """Recursively replace NaN/Infinity with None/0 for JSON compliance"""
-    if isinstance(obj, float):
+    """Recursively replace NaN/Infinity/booleans/numpy types with JSON-safe values"""
+    # Handle numpy boolean types
+    if isinstance(obj, (np.bool_, np.generic)):
+        return int(obj)
+    # Handle Python boolean (must check before int since bool is subclass of int)
+    elif isinstance(obj, bool):
+        return 1 if obj else 0
+    # Handle numpy integers and floats
+    elif isinstance(obj, (np.integer, np.floating)):
+        obj = float(obj)
         if math.isnan(obj) or math.isinf(obj):
             return 0.0
         return obj
+    # Handle Python floats
+    elif isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return 0.0
+        return obj
+    # Recursively handle dicts
     elif isinstance(obj, dict):
         return {k: sanitize_for_json(v) for k, v in obj.items()}
+    # Recursively handle lists
     elif isinstance(obj, list):
         return [sanitize_for_json(v) for v in obj]
+    # Handle numpy arrays
+    elif isinstance(obj, np.ndarray):
+        return sanitize_for_json(obj.tolist())
     return obj
 
 
@@ -347,6 +403,188 @@ def cleanup_file(file_path: Path):
             logger.debug(f"Cleaned up: {file_path}")
     except Exception as e:
         logger.error(f"Cleanup failed: {e}")
+
+
+# ==================== GitHub OSINT Endpoints ====================
+
+@app.post("/api/github/analyze")
+async def analyze_github_user(username: str = Form(...)):
+    """Analyze a GitHub user"""
+    try:
+        if not github_analyzer:
+            raise HTTPException(status_code=503, detail="GitHub analyzer not configured. Add GITHUB_ACCESS_TOKEN to .env")
+        
+        logger.info(f"GitHub analysis request for: {username}")
+        
+        results = github_analyzer.analyze_user(username)
+        
+        # Add to knowledge graph
+        try:
+            profile = results.get("profile", {})
+            user_id = f"github_user_{username}"
+            analyzer.graph.add_entity(
+                entity_id=user_id,
+                entity_type="GitHubUser",
+                properties={
+                    "username": username,
+                    "name": profile.get("basic_info", {}).get("name"),
+                    "followers": profile.get("account_metrics", {}).get("followers"),
+                    "public_repos": profile.get("account_metrics", {}).get("public_repos"),
+                },
+                source_file="github_osint"
+            )
+        except Exception as e:
+            logger.warning(f"Failed to add GitHub data to graph: {e}")
+        
+        clean_results = sanitize_for_json(results)
+        return JSONResponse(content=clean_results)
+        
+    except Exception as e:
+        logger.error(f"GitHub analysis failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== Twitter OSINT Endpoints ====================
+
+@app.post("/api/twitter/analyze")
+async def analyze_twitter_user(username: str = Form(...)):
+    """Analyze a Twitter/X user"""
+    try:
+        if not twitter_analyzer:
+            raise HTTPException(status_code=503, detail="Twitter analyzer not configured. Add TWITTER_BEARER_TOKEN to .env")
+        
+        logger.info(f"Twitter analysis request for: @{username}")
+        
+        results = twitter_analyzer.analyze_user(username)
+        
+        # Add to knowledge graph
+        try:
+            profile = results.get("profile", {})
+            user_id = f"twitter_user_{username}"
+            analyzer.graph.add_entity(
+                entity_id=user_id,
+                entity_type="TwitterUser",
+                properties={
+                    "username": username,
+                    "name": profile.get("basic_info", {}).get("name"),
+                    "followers": profile.get("account_metrics", {}).get("followers"),
+                    "tweets": profile.get("account_metrics", {}).get("tweets"),
+                },
+                source_file="twitter_osint"
+            )
+        except Exception as e:
+            logger.warning(f"Failed to add Twitter data to graph: {e}")
+        
+        clean_results = sanitize_for_json(results)
+        return JSONResponse(content=clean_results)
+        
+    except Exception as e:
+        logger.error(f"Twitter analysis failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== IP OSINT Endpoints ====================
+
+@app.post("/api/ip/analyze")
+async def analyze_ip_address(ip: str = Form(...)):
+    """Analyze an IP address"""
+    try:
+        logger.info(f"IP analysis request for: {ip}")
+        
+        results = ip_analyzer.analyze_ip(ip)
+        
+        # Add to knowledge graph
+        try:
+            geo = results.get("geolocation", {})
+            location = geo.get("location", {})
+            network = geo.get("network", {})
+            
+            ip_id = f"ip_{ip.replace('.', '_').replace(':', '_')}"
+            analyzer.graph.add_entity(
+                entity_id=ip_id,
+                entity_type="IPAddress",
+                properties={
+                    "ip": ip,
+                    "country": location.get("country"),
+                    "city": location.get("city"),
+                    "isp": network.get("isp"),
+                    "organization": network.get("organization"),
+                },
+                source_file="ip_osint"
+            )
+        except Exception as e:
+            logger.warning(f"Failed to add IP data to graph: {e}")
+        
+        clean_results = sanitize_for_json(results)
+        return JSONResponse(content=clean_results)
+        
+    except Exception as e:
+        logger.error(f"IP analysis failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== SpiderFoot OSINT Endpoints ====================
+
+@app.get("/api/spiderfoot/health")
+async def spiderfoot_health():
+    """Check SpiderFoot availability"""
+    is_healthy = spiderfoot_client.check_health()
+    return {
+        "available": is_healthy,
+        "url": spiderfoot_client.base_url
+    }
+
+@app.post("/api/spiderfoot/scan/start")
+async def start_spiderfoot_scan(target: str = Form(...), scan_name: str = Form(None)):
+    """Start a new SpiderFoot scan"""
+    try:
+        logger.info(f"Starting SpiderFoot scan for: {target}")
+        result = spiderfoot_client.start_scan(target, scan_name)
+        return JSONResponse(content=result)
+    except Exception as e:
+        logger.error(f"SpiderFoot scan start failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/spiderfoot/scan/status/{scan_id}")
+async def get_spiderfoot_scan_status(scan_id: str):
+    """Get status of a SpiderFoot scan"""
+    try:
+        status = spiderfoot_client.get_scan_status(scan_id)
+        return JSONResponse(content=status)
+    except Exception as e:
+        logger.error(f"Failed to get scan status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/spiderfoot/scan/results/{scan_id}")
+async def get_spiderfoot_scan_results(scan_id: str):
+    """Get results from a completed scan"""
+    try:
+        results = spiderfoot_client.get_scan_results(scan_id)
+        clean_results = sanitize_for_json(results)
+        return JSONResponse(content=clean_results)
+    except Exception as e:
+        logger.error(f"Failed to get scan results: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/spiderfoot/scans")
+async def list_spiderfoot_scans():
+    """List all SpiderFoot scans"""
+    try:
+        scans = spiderfoot_client.list_scans()
+        return JSONResponse(content={"scans": scans})
+    except Exception as e:
+        logger.error(f"Failed to list scans: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/spiderfoot/scan/{scan_id}")
+async def delete_spiderfoot_scan(scan_id: str):
+    """Delete a SpiderFoot scan"""
+    try:
+        success = spiderfoot_client.delete_scan(scan_id)
+        return {"success": success}
+    except Exception as e:
+        logger.error(f"Failed to delete scan: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

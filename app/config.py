@@ -61,6 +61,15 @@ class Settings(BaseSettings):
     GEMINI_MODEL: str = "gemini-2.5-flash-latest"
     GOOGLE_APPLICATION_CREDENTIALS: Optional[str] = None
     
+    # GitHub API Configuration
+    GITHUB_ACCESS_TOKEN: str = ""
+    
+    # Twitter API Configuration
+    TWITTER_BEARER_TOKEN: str = ""
+    
+    # IP OSINT Configuration (optional)
+    ABUSEIPDB_API_KEY: str = ""  # Optional: for threat intelligence
+    
     # Neo4j Configuration
     NEO4J_URI: str = "bolt://localhost:7687"
     NEO4J_USER: str = "neo4j"

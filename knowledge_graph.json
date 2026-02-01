@@ -173,8 +173,8 @@
       "id": "location_20.239106599722223_85.72231039972222",
       "entity_type": "Location",
       "first_seen": "2026-01-31T07:23:43.958796",
-      "last_seen": "2026-01-31T07:28:53.227459",
-      "seen_count": 2,
+      "last_seen": "2026-01-31T15:52:37.318947",
+      "seen_count": 3,
       "sources": [
         "storage\\uploads\\20260131_005654.jpg"
       ],
@@ -311,6 +311,301 @@
       "name": "images (1).jpg",
       "path": "storage\\uploads\\images (1).jpg",
       "type": "image/jpeg"
+    },
+    {
+      "id": "media_file_example_MP3_1MG_1769833441",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T09:54:01.075978",
+      "last_seen": "2026-01-31T09:54:01.075978",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\file_example_MP3_1MG.mp3"
+      ],
+      "name": "file_example_MP3_1MG.mp3",
+      "path": "storage\\uploads\\file_example_MP3_1MG.mp3",
+      "type": "audio/mpeg"
+    },
+    {
+      "id": "media_file_example_MP3_1MG_1769833575",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T09:56:15.848774",
+      "last_seen": "2026-01-31T09:56:15.848774",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\file_example_MP3_1MG.mp3"
+      ],
+      "name": "file_example_MP3_1MG.mp3",
+      "path": "storage\\uploads\\file_example_MP3_1MG.mp3",
+      "type": "audio/mpeg"
+    },
+    {
+      "id": "media_file_example_MP3_1MG_1769833639",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T09:57:19.823583",
+      "last_seen": "2026-01-31T09:57:19.823583",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\file_example_MP3_1MG.mp3"
+      ],
+      "name": "file_example_MP3_1MG.mp3",
+      "path": "storage\\uploads\\file_example_MP3_1MG.mp3",
+      "type": "audio/mpeg"
+    },
+    {
+      "id": "media_file_example_MP3_1MG_1769833730",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T09:58:50.487737",
+      "last_seen": "2026-01-31T09:58:50.487737",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\file_example_MP3_1MG.mp3"
+      ],
+      "name": "file_example_MP3_1MG.mp3",
+      "path": "storage\\uploads\\file_example_MP3_1MG.mp3",
+      "type": "audio/mpeg"
+    },
+    {
+      "id": "media_file_example_MP3_1MG_1769833840",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T10:00:40.764848",
+      "last_seen": "2026-01-31T10:00:40.764848",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\file_example_MP3_1MG.mp3"
+      ],
+      "name": "file_example_MP3_1MG.mp3",
+      "path": "storage\\uploads\\file_example_MP3_1MG.mp3",
+      "type": "audio/mpeg"
+    },
+    {
+      "id": "media_file_example_MP3_1MG_1769834056",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T10:04:16.735880",
+      "last_seen": "2026-01-31T10:04:16.735880",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\file_example_MP3_1MG.mp3"
+      ],
+      "name": "file_example_MP3_1MG.mp3",
+      "path": "storage\\uploads\\file_example_MP3_1MG.mp3",
+      "type": "audio/mpeg"
+    },
+    {
+      "id": "ip_8_8_8_8",
+      "entity_type": "IPAddress",
+      "first_seen": "2026-01-31T10:40:29.382660",
+      "last_seen": "2026-01-31T10:40:29.382660",
+      "seen_count": 1,
+      "sources": [
+        "ip_osint"
+      ],
+      "ip": "8.8.8.8",
+      "country": "United States",
+      "city": "Ashburn",
+      "isp": "Google LLC",
+      "organization": "Google Public DNS"
+    },
+    {
+      "id": "twitter_user_elonmusk",
+      "entity_type": "TwitterUser",
+      "first_seen": "2026-01-31T10:40:59.577855",
+      "last_seen": "2026-01-31T10:40:59.577855",
+      "seen_count": 1,
+      "sources": [
+        "twitter_osint"
+      ],
+      "username": "elonmusk",
+      "name": "Elon Musk",
+      "followers": 233484109,
+      "tweets": 95746
+    },
+    {
+      "id": "github_user_Bishnu2430",
+      "entity_type": "GitHubUser",
+      "first_seen": "2026-01-31T10:41:36.183558",
+      "last_seen": "2026-01-31T10:41:36.183558",
+      "seen_count": 1,
+      "sources": [
+        "github_osint"
+      ],
+      "username": "Bishnu2430",
+      "name": "Bishnu Prasad Kar",
+      "followers": 4,
+      "public_repos": 35
+    },
+    {
+      "id": "ip_1_1_1_1",
+      "entity_type": "IPAddress",
+      "first_seen": "2026-01-31T10:42:54.983849",
+      "last_seen": "2026-01-31T10:45:51.756203",
+      "seen_count": 2,
+      "sources": [
+        "ip_osint"
+      ],
+      "ip": "1.1.1.1",
+      "country": "Hong Kong",
+      "city": "Hong Kong",
+      "isp": "Cloudflare, Inc",
+      "organization": "APNIC and Cloudflare DNS Resolver project"
+    },
+    {
+      "id": "media_20260130_085947_1769845897",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T13:21:37.864419",
+      "last_seen": "2026-01-31T13:21:37.864419",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\20260130_085947.jpg"
+      ],
+      "name": "20260130_085947.jpg",
+      "path": "storage\\uploads\\20260130_085947.jpg",
+      "type": "image/jpeg"
+    },
+    {
+      "id": "location_20.238348399722224_85.72272689972222",
+      "entity_type": "Location",
+      "first_seen": "2026-01-31T13:21:37.867958",
+      "last_seen": "2026-01-31T13:21:37.867958",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\20260130_085947.jpg"
+      ],
+      "latitude": 20.238348399722224,
+      "longitude": 85.72272689972222,
+      "source": "GPS_EXIF"
+    },
+    {
+      "id": "ip_20_2_6_146",
+      "entity_type": "IPAddress",
+      "first_seen": "2026-01-31T13:26:32.991732",
+      "last_seen": "2026-01-31T13:27:29.752435",
+      "seen_count": 3,
+      "sources": [
+        "ip_osint"
+      ],
+      "ip": "20.2.6.146",
+      "country": "Hong Kong",
+      "city": "Hong Kong",
+      "isp": "Microsoft Corporation",
+      "organization": "Microsoft Azure Cloud (eastasia)"
+    },
+    {
+      "id": "media_8522887-hd_1080_1920_30fps_1769846384",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T13:29:44.106290",
+      "last_seen": "2026-01-31T13:29:44.106290",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\8522887-hd_1080_1920_30fps.mp4"
+      ],
+      "name": "8522887-hd_1080_1920_30fps.mp4",
+      "path": "storage\\uploads\\8522887-hd_1080_1920_30fps.mp4",
+      "type": "video/mp4"
+    },
+    {
+      "id": "media_8034250-hd_1080_1920_30fps_1769849912",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T14:28:32.513731",
+      "last_seen": "2026-01-31T14:28:32.513731",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\8034250-hd_1080_1920_30fps.mp4"
+      ],
+      "name": "8034250-hd_1080_1920_30fps.mp4",
+      "path": "storage\\uploads\\8034250-hd_1080_1920_30fps.mp4",
+      "type": "video/mp4"
+    },
+    {
+      "id": "media_20251211_124503_1769851119",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T14:48:39.705552",
+      "last_seen": "2026-01-31T14:48:39.705552",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\20251211_124503.jpg"
+      ],
+      "name": "20251211_124503.jpg",
+      "path": "storage\\uploads\\20251211_124503.jpg",
+      "type": "image/jpeg"
+    },
+    {
+      "id": "media_Screenshot (166)_1769851233",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T14:50:33.490622",
+      "last_seen": "2026-01-31T14:50:33.490622",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\Screenshot (166).png"
+      ],
+      "name": "Screenshot (166).png",
+      "path": "storage\\uploads\\Screenshot (166).png",
+      "type": "image/png"
+    },
+    {
+      "id": "media_images (1)_1769854424",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T15:43:44.512268",
+      "last_seen": "2026-01-31T15:43:44.512268",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\images (1).jpg"
+      ],
+      "name": "images (1).jpg",
+      "path": "storage\\uploads\\images (1).jpg",
+      "type": "image/jpeg"
+    },
+    {
+      "id": "media_20260131_005654_1769854957",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T15:52:37.308547",
+      "last_seen": "2026-01-31T15:52:37.308547",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\20260131_005654.jpg"
+      ],
+      "name": "20260131_005654.jpg",
+      "path": "storage\\uploads\\20260131_005654.jpg",
+      "type": "image/jpeg"
+    },
+    {
+      "id": "media_images (1)_1769855281",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T15:58:01.400874",
+      "last_seen": "2026-01-31T15:58:01.400874",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\images (1).jpg"
+      ],
+      "name": "images (1).jpg",
+      "path": "storage\\uploads\\images (1).jpg",
+      "type": "image/jpeg"
+    },
+    {
+      "id": "twitter_user_aajtak",
+      "entity_type": "TwitterUser",
+      "first_seen": "2026-01-31T15:59:01.885906",
+      "last_seen": "2026-01-31T15:59:01.885906",
+      "seen_count": 1,
+      "sources": [
+        "twitter_osint"
+      ],
+      "username": "aajtak",
+      "name": "AajTak",
+      "followers": 23951352,
+      "tweets": 1077403
+    },
+    {
+      "id": "media_images (1)_1769855384",
+      "entity_type": "Media",
+      "first_seen": "2026-01-31T15:59:44.732824",
+      "last_seen": "2026-01-31T15:59:44.732824",
+      "seen_count": 1,
+      "sources": [
+        "storage\\uploads\\images (1).jpg"
+      ],
+      "name": "images (1).jpg",
+      "path": "storage\\uploads\\images (1).jpg",
+      "type": "image/jpeg"
     }
   ],
   "edges": [
@@ -337,6 +632,18 @@
       "target": "location_20.2385549_85.7232596",
       "relationship_type": "captured_at",
       "created": "2026-01-31T07:44:28.894836"
+    },
+    {
+      "source": "media_20260130_085947_1769845897",
+      "target": "location_20.238348399722224_85.72272689972222",
+      "relationship_type": "captured_at",
+      "created": "2026-01-31T13:21:37.869957"
+    },
+    {
+      "source": "media_20260131_005654_1769854957",
+      "target": "location_20.239106599722223_85.72231039972222",
+      "relationship_type": "captured_at",
+      "created": "2026-01-31T15:52:37.325312"
     }
   ]
 }

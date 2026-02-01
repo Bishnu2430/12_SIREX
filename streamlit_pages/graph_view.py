@@ -91,9 +91,10 @@ def show():
     for link in filtered_links:
         G.add_edge(link['source'], link['target'], type=link.get('type', 'relates_to'))
     
-    # Calculate layout
+    # Calculate layout with more randomness
     if layout_type == "spring":
-        pos = nx.spring_layout(G, k=0.5, iterations=50)
+        # Use smaller k value and more iterations for natural, chaotic layout
+        pos = nx.spring_layout(G, k=1.5, iterations=100, seed=None)
     elif layout_type == "circular":
         pos = nx.circular_layout(G)
     elif layout_type == "kamada_kawai":

@@ -14,6 +14,7 @@ from core.vision.object_detection import ObjectDetector
 from core.vision.face_detection import FaceDetector
 from core.vision.ocr_reader import OCRReader
 from core.reasoning.spatial_temporal import SpatialTemporalReasoner
+from core.exposures import ExposureAnalyzer
 import logging
 
 logger = logging.getLogger(__name__)
@@ -33,6 +34,9 @@ class AgentController:
         self.observer = Observability()
         from core.reasoning.llm_client import LLMClient
         self.llm_client = LLMClient()
+        
+        # NEW: Exposure-Centric Analysis (Primary)
+        self.exposure_analyzer = ExposureAnalyzer()
         
         # Tools
         self.object_detector = ObjectDetector()
@@ -82,16 +86,30 @@ class AgentController:
         signals.update(vision_results)
         self.observer.log_event(session_id, "vision_analysis_complete", {k: len(v) if isinstance(v, list) else "Data" for k, v in vision_results.items()})
 
-        # LLM Analysis (Early Execution for Exposure Mapping)
-        llm_result = self.llm_client.analyze_signals(signals, image_path=image_path)
+        # PRIMARY: Exposure-Centric Analysis (Rule-Based, Reliable)
+        exposure_report = self.exposure_analyzer.analyze(signals)
+        self.observer.log_event(session_id, "exposure_analysis_complete", {
+            "total_exposures": exposure_report.total_count,
+            "by_severity": exposure_report.by_severity
+        })
         
-        narrative_report = llm_result.get("narrative_report", "")
-        llm_exposures = llm_result.get("exposures", [])
-        reasoning_trace = llm_result.get("reasoning_trace", "")
+        # OPTIONAL: LLM Analysis (if API is available)
+        llm_result = None
+        narrative_report = ""
+        llm_exposures = []
+        reasoning_trace = ""
         
-        self.observer.log_event(session_id, "llm_analysis_complete", {"status": "success"})
-        if reasoning_trace:
-            self.observer.log_event(session_id, "agent_reasoning_trace", {"trace": reasoning_trace})
+        try:
+            llm_result = self.llm_client.analyze_signals(signals, image_path=image_path)
+            narrative_report = llm_result.get("narrative_report", "")
+            llm_exposures = llm_result.get("exposures", [])
+            reasoning_trace = llm_result.get("reasoning_trace", "")
+            self.observer.log_event(session_id, "llm_analysis_complete", {"status": "success"})
+            if reasoning_trace:
+                self.observer.log_event(session_id, "agent_reasoning_trace", {"trace": reasoning_trace})
+        except Exception as llm_error:
+            logger.warning(f"LLM analysis unavailable: {llm_error}")
+            self.observer.log_event(session_id, "llm_analysis_skipped", {"reason": str(llm_error)})
 
         # Entity Building (Graph)
         entities = self.entity_builder.build_all(signals)
@@ -201,6 +219,7 @@ class AgentController:
             "entities": entities,
             "relationships": relationships,
             "exposures": exposures,
+            "exposure_report": exposure_report.to_dict(),  # NEW: Rule-based exposure detection
             "risk_results": risk_results,
             "report": report
         }

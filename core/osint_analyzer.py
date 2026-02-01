@@ -160,8 +160,8 @@ class OSINTAnalyzer:
             # Compile all signals for LLM
             signals = {
                 "metadata": results["metadata"],
-                "vision": results.get("vision_analysis"),
-                "audio": results.get("audio_analysis")
+                "vision": results.get("vision_analysis") or {},
+                "audio": results.get("audio_analysis") or {}
             }
             
             # Run LLM analysis with media file
@@ -445,17 +445,20 @@ class OSINTAnalyzer:
     
     def _create_summary(self, results: Dict[str, Any]) -> Dict[str, Any]:
         """Create analysis summary"""
-        llm_intel = results.get("llm_intelligence", {})
+        llm_intel = results.get("llm_intelligence") or {}
+        metadata = results.get("metadata") or {}
+        vision = results.get("vision_analysis") or {}
+        audio = results.get("audio_analysis")
         
         return {
             "entities_found": len(llm_intel.get("entities", [])),
             "exposures_identified": len(llm_intel.get("exposures", [])),
             "relationships_found": len(llm_intel.get("relationships", [])),
             "confidence_overall": llm_intel.get("confidence_scores", {}).get("overall", 0.0),
-            "has_gps": bool(results.get("metadata", {}).get("gps")),
-            "has_text": bool(results.get("vision_analysis", {}).get("text", {}).get("full_text")),
-            "has_faces": len(results.get("vision_analysis", {}).get("faces", [])) > 0,
-            "has_audio": results.get("audio_analysis") is not None
+            "has_gps": 1 if metadata.get("gps") else 0,
+            "has_text": 1 if vision.get("text", {}).get("full_text") else 0,
+            "has_faces": 1 if len(vision.get("faces", [])) > 0 else 0,
+            "has_audio": 1 if audio is not None else 0
         }
     
     def get_graph_statistics(self) -> Dict[str, Any]:
